@@ -8,8 +8,18 @@ use \App\Customer;
 use Webpatser\Uuid\Uuid;
 use \Carbon\Carbon;
 
+use App\Services\TicketService;
+
+
 class TicketController extends Controller
 {
+    protected $ticketService;
+
+    public function __construct(TicketService $ticketService)
+    {
+        $this->ticketService = $ticketService;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -39,25 +49,13 @@ class TicketController extends Controller
      */
     public function store(Request $request, $customer_id)
     {
-        $maxCount = 5;
 
-        $ticketCount = Ticket::where('is_paid', 0)->count();
+        $ticket = $this->ticketService->create($customer_id);
 
-        if ($ticketCount >= $maxCount) {
-            abort(403, "LOT IS FULL.");
-        }
-
-        $customer = Customer::findOrFail($customer_id);
-
-        if ($customer) {
-
-            $ticket = new Ticket;
-            $ticket->customer_id = $customer_id;
-            $ticket->save();
-
-            return response($ticket, 200);
+        if ($ticket) {
+            return response(['ticket' => $ticket], 200);
         }else{
-            abort(404, "Customer with id " . $customer_id . " not found!");
+            return response(['errors' => 'Lot is FULL'], 403);
         }
     }
 
@@ -69,15 +67,7 @@ class TicketController extends Controller
      */
     public function show($id)
     {
-        $ticket = Ticket::findOrFail($id);
-
-        if(! $ticket){
-            abort(404, "TICKET NOT FOUND! you're stuck, buddy!");
-        }
-
-        $ticket->cost();
-
-        return response(['ticket' => $ticket], 200);
+        return response(['cost' => $this->ticketService->getCost($id)], 200);
     }
 
     /**
@@ -102,9 +92,7 @@ class TicketController extends Controller
     {
         $ticket = Ticket::findOrFail($id);
 
-        if(! $ticket){
-            abort(404, "TICKET NOT FOUND! you're stuck, buddy!");
-        }else if(! $ticket->cost){
+        if(! $ticket->cost){
             abort(403, "YOU ARE HERE PREMATURELY");
         }
 
@@ -115,20 +103,7 @@ class TicketController extends Controller
             'credit-validation-code' => 'required|cvc',
         ]);
 
-        $message = 'Thank you for your business.';
-
-        // Reclaculate cost after 5 minutes
-        $current_time = Carbon::now();
-        $timeout = $ticket->updated_at->diffInMinutes($current_time);
-
-        if($timeout >= 5){
-
-            $message = $message . " Updating the cost ... previously it was " . $ticket->cost;
-
-            $ticket->cost();
-        }
-
-        $message = $message . ' Your cost is $' . $ticket->cost;
+        $message = 'Thank you for your business, your cost is $' . $ticket->cost;
 
         // Pretend to bill the credit card, assume successful
 

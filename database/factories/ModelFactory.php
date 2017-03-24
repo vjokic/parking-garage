@@ -29,7 +29,7 @@ $factory->define(App\User::class, function (Faker\Generator $faker) {
 $factory->define(App\Ticket::class, function (Faker\Generator $faker) {
 
     return [
-        'customer_id' => Customer::inRandomOrder()->first()->id,
+        'customer_id' => factory(Customer::class)->create()->id,
     ];
 });
 

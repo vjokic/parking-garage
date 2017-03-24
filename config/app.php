@@ -12,7 +12,9 @@ return [
     | any other location as required by the application or its packages.
     */
 
-    'name' => 'Laravel',
+    'name' => 'Parking Garage Simulator',
+
+    'garage_capacity' => env('APP_GARAGE_CAPACITY', 5),
 
     /*
     |--------------------------------------------------------------------------

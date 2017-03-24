@@ -13,14 +13,10 @@ class Customer extends Model
     protected $table = 'customers';
 
     public function tickets(){
-
-        $tickets = $this->hasMany(Ticket::class);
-
-        return $tickets;
+        return $this->hasMany(Ticket::class);
     }
 
     public function unpaidTickets(){
-
         return $this->tickets()->unpaid()->get();
     }
 
@@ -34,22 +30,4 @@ class Customer extends Model
             return true;
         }
     }
-
-    public function balance(){
-
-        $tickets = $this->unpaidTickets();
-
-        if(!$tickets){
-            return 0;
-        }else{
-
-            $total = 0;
-            foreach($tickets as $ticket){
-                $total += $ticket->cost();
-            }
-
-            return $total;
-        }
-    }
-
 }

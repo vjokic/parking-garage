@@ -9,12 +9,17 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use \App\Ticket;
 use \App\Customer;
 
+use \App\Services\CustomerService;
+
 use Webpatser\Uuid\Uuid;
 use \Carbon\Carbon;
+
+use Mockery as m;
 
 class ExampleTest extends TestCase
 {
     use DatabaseTransactions;
+    use DatabaseMigrations;
 
     /**
      * @group success
@@ -22,20 +27,18 @@ class ExampleTest extends TestCase
      */
     public function testHappyPath()
     {
+        echo(PHP_EOL . 'HAPPY PATH');
 
         // Create some customers and pick a random one to assign a ticket
-        factory(Customer::class, 5)->create();
-        $randomCustomer = Customer::inRandomOrder()->first();
+        $customer = factory(Customer::class)->create();
 
-        // Create ticket
-        echo(PHP_EOL . 'HAPPY PATH');
-        echo(PHP_EOL . 'POST to /customers');
+        echo(PHP_EOL . 'POST to /customers/' . $customer->id);
 
-        $response = $this->post('/customers/' . $randomCustomer->id);
+        $response = $this->post('/customers/' . $customer->id);
 
         $response->assertStatus(200);
 
-        $id = $response->getOriginalContent()->id;
+        $id = $response->getOriginalContent()['ticket']->id;
         echo(PHP_EOL . 'New generated id: ' . $id);
 
         // Fetch ticket cost
@@ -47,8 +50,8 @@ class ExampleTest extends TestCase
 
         echo(PHP_EOL . 'Response: ' . $response->status());
 
-        $ticket = $response->getOriginalContent()['ticket'];
-        echo(PHP_EOL . 'Cost: ' . $ticket->cost . PHP_EOL . "Is Paid: " . $ticket->is_paid);
+        $cost = $response->getOriginalContent()['cost'];
+        echo(PHP_EOL . 'Cost: ' . $cost);
 
         // Pay ticket
         echo(PHP_EOL . 'PATCH to /pay/{ticket} with above id');
@@ -67,6 +70,7 @@ class ExampleTest extends TestCase
     /**
      * @group fail
      */
+
     public function test_lot_is_full()
     {
 
@@ -74,10 +78,9 @@ class ExampleTest extends TestCase
         echo(PHP_EOL . 'Test: Lot is full');
         echo(PHP_EOL . 'Description: Create 5 tickets, attempt to create a sixth.');
 
-        factory(Customer::class, 5)->create();
-        factory(Ticket::class, 5)->create();
+        $tickets = factory(Ticket::class, 5)->create();
 
-        $response = $this->post('/customers/' . Customer::inRandomOrder()->first()->id);
+        $response = $this->post('/customers/' . $tickets->first()->customer->id);
 
         echo(PHP_EOL . 'Response: ' . $response->status());
 
@@ -190,35 +193,6 @@ class ExampleTest extends TestCase
     }
 
     /**
-     * @group fail
-     */
-    public function test_paying_after_price_expires()
-    {
-
-        // Create ticket
-        echo(PHP_EOL . 'Test: Attempt to pay after price expires (5 mins)');
-        echo(PHP_EOL . 'Description: Prevent tricking system by not paying. Price is updated, proper amount is charged.');
-
-        factory(Customer::class, 5)->create();
-        $ticket = factory(Ticket::class)->create();
-        $id = $ticket->id;
-
-        $response = $this->get('/tickets/' . $id);
-
-        $response->assertStatus(200);
-
-        $ticket = Ticket::findOrFail($id);
-        $ticket->updated_at = Carbon::now()->addHours(6);
-        $ticket->save();
-
-        $response = $this->patch('/pay/' . $id, ['credit-card-number' => '4520050026416659', 'credit-card-date' => '02/2021', 'credit-validation-code' => '873']);
-
-        echo(PHP_EOL . 'Validation Code: ' . $response->getOriginalContent()['ticket']->payment_validation_code);
-        echo(PHP_EOL . 'Message: ' . $response->getOriginalContent()['message']);
-
-    }
-
-    /**
      * @group success
      */
     public function test_customers_and_ticket_relationship()
@@ -226,24 +200,12 @@ class ExampleTest extends TestCase
 
         echo(PHP_EOL . 'Test: Check if Customer and Ticket relationships are properly set up');
 
-        $customer = factory(Customer::class)->create();
-        factory(Ticket::class, 5)->create();
+        $tickets = factory(Ticket::class, 5)->create();
 
-        echo(PHP_EOL . 'Number of tickets: ' . sizeof($customer->tickets));
+        $numberOfTickets = sizeof($tickets->first()->unpaid()->get());
+        echo(PHP_EOL . 'Number of tickets: ' . $numberOfTickets);
 
-    }
-
-    /**
-     * @group success
-     */
-    public function test_customer_has_unpaid_tickets()
-    {
-        echo(PHP_EOL . 'Test: See if customer has unpaid tickets');
-
-        $customer = factory(Customer::class)->create();
-        factory(Ticket::class, 5)->create();
-
-        echo(PHP_EOL . "Customer has unpaid tickets: " . $customer->hasUnpaidTickets());
+        self::assertEquals($numberOfTickets, 5);
     }
 
     /**
@@ -254,8 +216,13 @@ class ExampleTest extends TestCase
         echo(PHP_EOL . 'Test: See if customer has outstanding balance');
 
         $customer = factory(Customer::class)->create();
-        factory(Ticket::class, 5)->create();
+        factory(Ticket::class, 5)->create(['customer_id' => $customer->id, 'is_paid' => false]);
 
-        echo(PHP_EOL . "Outstanding balance: " . $customer->balance());
+        $customerService = new CustomerService(new Customer());
+        $balance = $customerService->getBalance($customer->id);
+
+        echo(PHP_EOL . "Outstanding balance: " . $balance);
+
+        self::assertEquals($balance,15);
     }
 }
