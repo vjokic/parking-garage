@@ -16,6 +16,8 @@ use \Carbon\Carbon;
 
 use Mockery as m;
 
+use App;
+
 class ExampleTest extends TestCase
 {
     use DatabaseTransactions;
@@ -218,8 +220,7 @@ class ExampleTest extends TestCase
         $customer = factory(Customer::class)->create();
         factory(Ticket::class, 5)->create(['customer_id' => $customer->id, 'is_paid' => false]);
 
-        $customerService = new CustomerService(new Customer());
-        $balance = $customerService->getBalance($customer->id);
+        $balance = app(CustomerService::class)->getBalance($customer->id);
 
         echo(PHP_EOL . "Outstanding balance: " . $balance);
 
