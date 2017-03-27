@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 use Carbon\Carbon;
 
+use App\Events\TicketWasPaid;
+
+
 class Ticket extends Model
 {
     //
@@ -18,15 +21,15 @@ class Ticket extends Model
 
     protected $fillable = ['customer_id'];
 
+    protected $events = [
+        'getsPaid' => TicketWasPaid::class
+    ];
+
     public function customer(){
         return $this->belongsTo(Customer::class);
     }
 
     public function scopeUnpaid($query) {
         return $query->where('is_paid', false);
-    }
-
-    public function hasAvailability(){
-        return $this->unpaid()->count() < config('app.garage_capacity');
     }
 }

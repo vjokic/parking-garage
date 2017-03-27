@@ -16,9 +16,11 @@ use Carbon\Carbon;
 class TicketService
 {
     /**
-     * @var Customer
+     * @var Customer, Ticket
      */
     private $customer, $ticket;
+
+    private $waitingCustomers = array();
 
     function __construct(Customer $customer, Ticket $ticket)
     {
@@ -28,13 +30,30 @@ class TicketService
 
     public function create($customer_id){
 
-        if(!$this->ticket->hasAvailability()) {
+        if(!$this->hasAvailability()) {
+            // Add customer to waiting list
+            array_push($this->waitingCustomers, $customer_id);
             return null;
         }
 
         $customer = $this->customer->findOrFail($customer_id);
 
         return $customer->tickets()->create(['customer_id' => $customer_id]);
+    }
+
+    public function hasAvailability(){
+        return $this->ticket->unpaid()->count() < config('app.garage_capacity');
+    }
+
+    public function nextInLineEnters(){
+
+        if(sizeof($this->waitingCustomers) == 0){
+            return null;
+        }
+
+        $customerId = array_shift($this->waitingCustomers);
+
+        $this->create($customerId);
     }
 
     public function getCost($ticket_id){

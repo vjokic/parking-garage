@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\TicketWasPaid;
 use Illuminate\Http\Request;
 use \App\Ticket;
 use \App\Customer;
@@ -112,6 +113,9 @@ class TicketController extends Controller
         $ticket->is_paid = true;
         $ticket->payment_validation_code = $validation_code;
         $ticket->save();
+
+        // Notify the lot that a ticket was paid and let in first waiting customer (if any)
+        event(new TicketWasPaid($this->ticketService));
 
         return response(['ticket' => $ticket, 'message' => $message], 200);
     }
