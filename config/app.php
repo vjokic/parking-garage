@@ -185,6 +185,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+
         App\Providers\ParkingServiceProvider::class,
     ],
 
@@ -237,7 +238,8 @@ return [
         'Form' => Collective\Html\FormFacade::class,
         'Html' => Collective\Html\HtmlFacade::class,
         'Uuid' => Webpatser\Uuid\Uuid::class,
-
+        'Tickets' => App\Facades\Tickets::class,
+        'Customers' => App\Facades\Customers::class,
     ],
 
 ];

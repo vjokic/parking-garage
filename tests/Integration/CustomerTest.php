@@ -11,6 +11,8 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use \App\Ticket;
 use \App\Customer;
 
+use App\Facades\Tickets;
+
 use Mockery as m;
 
 class CustomerTest extends TestCase

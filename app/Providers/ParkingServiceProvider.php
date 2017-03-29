@@ -29,11 +29,15 @@ class ParkingServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        /*
         $this->app->singleton(TicketService::class, function() {
             return new TicketService(new Customer(), new Ticket());
         });
         $this->app->singleton(CustomerService::class, function() {
             return new CustomerService(new Customer());
         });
+*/
+        $this->app->singleton('tickets', TicketService::class);
+        $this->app->singleton('customers', CustomerService::class);
     }
 }
